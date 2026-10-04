@@ -1,5 +1,6 @@
 import "dotenv/config";
 import express from "express";
+import cors from "cors";
 import cookieParser from "cookie-parser";
 import swaggerUi from "swagger-ui-express";
 import swaggerSpec from "./docs/swagger.js";
@@ -10,6 +11,35 @@ import userRoutes from "./routes/userRoutes.js";
 import realtimeRoutes from "./routes/realtimeRoutes.js";
 
 const app = express();
+
+// ---------- CORS ----------
+// CORS_ORIGINS di .env:
+//   "*"                      -> semua situs boleh mengakses
+//   "https://a.com,https://b.com" -> hanya situs yang di-whitelist
+const allowedOrigins = (process.env.CORS_ORIGINS || "*")
+    .split(",")
+    .map((o) => o.trim())
+    .filter(Boolean);
+
+const allowAll = allowedOrigins.includes("*");
+
+app.use(
+    cors({
+        origin: allowAll
+            ? "*"
+            : (origin, callback) => {
+                  // !origin = request tanpa header Origin (Postman, curl, server-to-server)
+                  if (!origin || allowedOrigins.includes(origin)) {
+                      return callback(null, true);
+                  }
+                  // Tidak diberi header CORS -> diblokir oleh browser
+                  return callback(null, false);
+              },
+        methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+        allowedHeaders: ["Content-Type", "Authorization"],
+        maxAge: 86400, // cache preflight selama 24 jam
+    })
+);
 
 // Middleware
 app.use(express.json());
